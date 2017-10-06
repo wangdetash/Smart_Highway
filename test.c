@@ -1,15 +1,8 @@
-# include<lpc214x.h>
-# include<stdio.h>
+#include <lpc214x.h>
+#include <stdio.h>
+#include <string.h>
 
-void transmit(char *a)
-{
-int i;
-for(i=0;a[i]!='\0';i++)
-{
-U0THR=a[i];
-while(!(U0LSR&0X20));
-}
-}
+
 
 void initClocks(void) // Setup PLL and Clock Frequency
 {
@@ -26,43 +19,71 @@ void initClocks(void) // Setup PLL and Clock Frequency
  VPBDIV = 0x01;    // PCLK is same as CCLK i.e.60 MHz
 } 
 
+void timer()__irq
+{
+	IOCLR1=(1<<28);
+	T0TCR=0X00;
+	//VICIntEnClear0=(1<<4);
+	VICVectAddr=0;
+
+}
+
 void init(void)
 {
 	PINSEL0 =0X00008005;
 	PINSEL1=0X00000400;//(PINSEL0 & ~(1 << 16)) | (1 << 17);  Select PWM4 output for Pin0.8
 	PINSEL2=0X00000000;
 
-  PWMPCR = 0x0; //Select Single Edge PWM - by default its single Edged so this line can be removed
-  PWMPR = 60-1; // 1 micro-second resolution
-  PWMMR0 = 10000; // 10ms period duration
-  PWMMR2 = 500;
-  PWMMR5 = 500; //0.5ms - pulse duration i.e width (Brigtness level)
-  PWMMCR = (1<<1); // Reset PWMTC on PWMMR0 match
-  PWMLER = 0X25;//(1<<0)|(1<<2)|(1<<5); // update MR0 and MR4
-  PWMPCR = 0X2400;//(1<<12); // enable PWM output
-  PWMTCR = (1<<1) ; //Reset PWM TC & PR
+    PWMPCR = 0x0; //Select Single Edge PWM - by default its single Edged so this line can be removed
+    PWMPR = 60-1; // 1 micro-second resolution
+    PWMMR0 = 10000; // 10ms period duration
+    PWMMR2 = 500;
+    PWMMR5 = 500; //0.5ms - pulse duration i.e width (Brigtness level)
+    PWMMCR = (1<<1); // Reset PWMTC on PWMMR0 match
+    PWMLER = 0X25;//(1<<0)|(1<<2)|(1<<5); // update MR0 and MR4
+    PWMPCR = 0X2400;//(1<<12); // enable PWM output
+    PWMTCR = (1<<1) ; //Reset PWM TC & PR
  
-  PWMTCR = (1<<0) | (1<<10); // enable counters and PWM Mode
+    PWMTCR = (1<<0) | (1<<10); // enable counters and PWM Mode
    
     IODIR0=0X00000001;
     IODIR1=0X10000000;
+    
     U0LCR=0X83;
-		U0DLL=97;
-		U0LCR=0X03;
-		AD0CR=0X00200006;
+	U0DLL=97;
+	U0LCR=0X03;
+	
+	AD0CR=0X00200006;
+
+	T0CTCR=0X00;
+	T0PR=60000;                             //100000000;
+	T0TCR=0X02;
+	T0MCR=3;
+	T0MR0=1000;
+	T0IR=(1<<0);
+
+	VICVectCntl0=(1<<5)|4;
+	VICIntEnable=1<<4;
+	VICVectAddr0=(unsigned)timer;
+
+	
 }
+
+
 
 
 int main()
 {
-	  char a[10],b[10];
+	char a[10],b[10];
     int i,ldr,gas;
 
-   initClocks(); //Initialize CPU and Peripheral Clocks @ 60Mhz
-	 init();
+   	initClocks(); //Initialize CPU and Peripheral Clocks @ 60Mhz
+	init();
 
-while(1)
-{
+	wifi_connect();
+
+	while(1)
+	{
 
 	  AD0CR=0X01200002;
 	  while(!(AD0GDR)&(80000000));
@@ -73,8 +94,7 @@ while(1)
 	  AD0CR=0X01200004;
 	  while(!(AD0GDR)&(80000000));
 	  gas=((AD0GDR>>6)&(0X03FF));
-	  sprintf(b,"%d\n\r",gas);
-	  transmit(b);
+	  transfer(gas);
 
 		if(ldr<256)
 		{
@@ -120,10 +140,14 @@ while(1)
 		{
 
 			IOSET1=(1<<28);
-			for(i=0;i<100000;i++);
-			IOCLR1=(1<<28);
-						
+			T0TCR=0X02;
+			T0TCR=0X01;
+			
+	
+			
 		}
+
+
 
 }
 }
