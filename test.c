@@ -23,7 +23,7 @@ void timer()__irq
 {
 	IOCLR1=(1<<28);
 	T0TCR=0X00;
-	//VICIntEnClear0=(1<<4);
+	T0IR=1;
 	VICVectAddr=0;
 
 }
