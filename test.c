@@ -126,7 +126,7 @@ int main()
  
 	init();
 
-	//wifi_connect();
+	wifi_connect();
 
 	while(1)
 	{
@@ -143,9 +143,7 @@ int main()
 	   while(!(AD0GDR)&(80000000));
 	   gas=((AD0GDR>>6)&(0X03FF));
 	   transfer(gas);
-	   /*sprintf(a,"%d %d\n\r",gas,ldr);
-	  delay(4000);
-	  transmit(a);*/
+	   
 	 if (gas>200)
 	 {
 		cmd(0X01);
